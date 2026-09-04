@@ -195,9 +195,14 @@
   // ---------- estado do cabeçalho
   fetch('/health').then(r => r.json()).then(h => {
     const el = $('mode');
-    if (h.mode === 'real') { el.textContent = 'modelo real'; el.className = 'badge live'; }
-    else { el.textContent = 'modo demo'; el.className = 'badge demo'; }
-    $('foot').textContent = `modelo: ${h.model_loaded ? 'carregado' : 'ausente'} · replay: ${h.replay_loaded ? 'carregado' : 'ausente'} · fonte dos fluxos: ${h.replay_loaded ? 'conjunto de teste' : 'gerador sintético'}`;
+    if (h.mode === 'real')        { el.textContent = 'modelo real';   el.className = 'badge live'; }
+    else if (h.mode === 'replay') { el.textContent = 'replay do dataset'; el.className = 'badge demo'; }
+    else                          { el.textContent = 'modo demo';     el.className = 'badge demo'; }
+    $('foot').textContent = h.model_loaded
+      ? 'classes = predições do LightGBM · fluxos = conjunto de teste'
+      : (h.replay_loaded
+          ? 'sem modelo treinado: as classes são os rótulos verdadeiros do dataset, não predições'
+          : 'sem modelo e sem dataset: fluxos sintéticos apenas para demonstrar a interface');
   }).catch(() => { $('mode').textContent = 'api offline'; });
 
   // ---------- gráfico
@@ -247,10 +252,10 @@
     const t = new Date(f.ts * 1000).toLocaleTimeString('pt-BR');
     tr.innerHTML = `
       <td class="t">${t}</td>
-      <td class="f">${f.src} → ${f.dst}:${f.port}</td>
+      <td class="f">${f.src === '-' ? 'porta ' + f.port : f.src + ' → ' + f.dst + ':' + f.port}</td>
       <td>${f.label}</td>
       <td><span class="sev ${f.severity}">${f.severity}</span></td>
-      <td class="c">${f.confidence.toFixed(3)}</td>
+      <td class="c">${f.source === 'modelo' || f.source === 'demo' ? f.confidence.toFixed(3) : '—'}</td>
       <td class="c">${nf.format(f.bytes)}</td>`;
     tbody.prepend(tr);
     while (tbody.children.length > MAX_ROWS) tbody.lastChild.remove();

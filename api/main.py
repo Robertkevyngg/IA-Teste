@@ -50,6 +50,13 @@ DEMO_CLASSES = [
     ("Infiltration", 0.001, "critical"),
 ]
 SEVERITY = {name: sev for name, _, sev in DEMO_CLASSES}
+# Severidade das demais classes reais do CIC-IDS2017 (o modo demo usa so um subconjunto).
+SEVERITY.update({
+    "BENIGN": "none",
+    "DoS GoldenEye": "high", "DoS Slowhttptest": "high", "DoS slowloris": "high",
+    "Heartbleed": "critical", "Infiltration": "critical",
+    "Web Attack - XSS": "high", "Web Attack - Sql Injection": "critical",
+})
 
 
 @app.on_event("startup")
@@ -67,8 +74,14 @@ def load_models() -> None:
     if replay.exists():
         try:
             import pandas as pd
-            state["replay"] = pd.read_parquet(replay)
-            print(f"replay carregado: {len(state['replay']):,} fluxos de teste")
+            df = pd.read_parquet(replay)
+            # amostra embaralhada: o parquet vem ordenado por dia e classe, entao
+            # ler em ordem mostraria so trafego benigno de segunda por varios minutos.
+            n = min(len(df), 50_000)
+            state["replay"] = df.sample(n=n, random_state=42).reset_index(drop=True)
+            if state["mode"] == "demo":
+                state["mode"] = "replay"
+            print(f"replay carregado: amostra de {n:,} de {len(df):,} fluxos de teste")
         except Exception as exc:  # pragma: no cover
             print(f"nao consegui carregar o replay: {exc}")
 
