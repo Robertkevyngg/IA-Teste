@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IA Teste — Console de Detecção</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#0A0F11;
+    --panel:#111A1D;
+    --panel-2:#0E1619;
+    --line:#1E2C30;
+    --line-soft:#172326;
+    --text:#DCE6E5;
+    --text-2:#8FA3A5;
+    --muted:#5E7275;
+    --accent:#3FBFAE;
+    --ok:#4E9E7A;
+    --warn:#D2A03C;
+    --high:#D96A3D;
+    --crit:#D9455B;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:var(--bg);color:var(--text);
+    font-family:"IBM Plex Sans","Segoe UI",system-ui,sans-serif;
+    font-size:14px;line-height:1.5;
+    padding:20px;min-height:100vh;
+  }
+  .mono{font-family:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace}
+
+  header{
+    display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+    padding-bottom:16px;margin-bottom:20px;border-bottom:1px solid var(--line);
+  }
+  header h1{
+    font-size:16px;font-weight:600;letter-spacing:-.01em;
+  }
+  header h1 span{color:var(--accent)}
+  .badge{
+    font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;
+    letter-spacing:.12em;text-transform:uppercase;
+    padding:4px 9px;border-radius:3px;border:1px solid var(--line);
+    color:var(--text-2);background:var(--panel);
+  }
+  .badge.live{color:var(--accent);border-color:#1F4C48;background:#0E2523}
+  .badge.demo{color:var(--warn);border-color:#3D3220;background:#221C10}
+  .dot{
+    display:inline-block;width:6px;height:6px;border-radius:50%;
+    background:currentColor;margin-right:6px;vertical-align:1px;
+  }
+  .live .dot{animation:pulse 1.6s ease-in-out infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+  .spacer{flex:1}
+  button{
+    font-family:inherit;font-size:13px;color:var(--text);
+    background:var(--panel);border:1px solid var(--line);
+    padding:6px 14px;border-radius:3px;cursor:pointer;
+  }
+  button:hover{border-color:#2C4046}
+  button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .stats{
+    display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));
+    gap:1px;background:var(--line-soft);border:1px solid var(--line);
+    border-radius:4px;overflow:hidden;margin-bottom:20px;
+  }
+  .stat{background:var(--panel);padding:14px 16px}
+  .stat .k{
+    font-family:"IBM Plex Mono",monospace;font-size:10px;font-weight:600;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+    margin-bottom:6px;
+  }
+  .stat .v{
+    font-family:"IBM Plex Mono",monospace;font-size:24px;font-weight:600;
+    letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1;
+  }
+  .stat .v small{font-size:13px;color:var(--text-2);font-weight:400;margin-left:2px}
+  .stat.alert .v{color:var(--high)}
+  .stat.good .v{color:var(--accent)}
+
+  .grid{display:grid;grid-template-columns:1fr 300px;gap:16px;align-items:start}
+  @media (max-width:860px){.grid{grid-template-columns:1fr}}
+
+  .panel{
+    background:var(--panel);border:1px solid var(--line);border-radius:4px;overflow:hidden;
+  }
+  .panel h2{
+    font-family:"IBM Plex Mono",monospace;font-size:10.5px;font-weight:600;
+    letter-spacing:.12em;text-transform:uppercase;color:var(--muted);
+    padding:11px 16px;border-bottom:1px solid var(--line);background:var(--panel-2);
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .panel h2 em{font-style:normal;color:var(--text-2);letter-spacing:0;text-transform:none;font-size:11px}
+
+  #chart{display:block;width:100%;height:110px}
+
+  .tablewrap{max-height:400px;overflow-y:auto;overflow-x:auto}
+  table{width:100%;border-collapse:collapse;font-size:12.5px;min-width:600px}
+  th{
+    font-family:"IBM Plex Mono",monospace;font-size:9.5px;font-weight:600;
+    letter-spacing:.1em;text-transform:uppercase;color:var(--muted);
+    text-align:left;padding:8px 16px;background:var(--panel-2);
+    position:sticky;top:0;border-bottom:1px solid var(--line);
+  }
+  td{padding:7px 16px;border-bottom:1px solid var(--line-soft);vertical-align:middle}
+  tbody tr.new{animation:slide .35s ease-out}
+  @keyframes slide{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  td.t{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-size:11.5px;white-space:nowrap}
+  td.f{font-family:"IBM Plex Mono",monospace;color:var(--text-2);font-size:11.5px;white-space:nowrap}
+  td.c{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;color:var(--text-2);text-align:right;white-space:nowrap}
+  .sev{
+    display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:10px;
+    font-weight:600;letter-spacing:.08em;text-transform:uppercase;
+    padding:2px 7px;border-radius:2px;border:1px solid;white-space:nowrap;
+  }
+  .sev.critical{color:var(--crit);border-color:#4A1E26;background:#201013}
+  .sev.high{color:var(--high);border-color:#4A2C1E;background:#201510}
+  .sev.medium{color:var(--warn);border-color:#453820;background:#1E1910}
+  .empty{padding:28px 16px;color:var(--muted);text-align:center;font-size:13px}
+
+  .bars{padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+  .bar .top{display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px}
+  .bar .top b{font-weight:500}
+  .bar .top span{font-family:"IBM Plex Mono",monospace;color:var(--muted);font-variant-numeric:tabular-nums}
+  .track{height:5px;background:var(--line-soft);border-radius:3px;overflow:hidden}
+  .fill{height:100%;background:var(--accent);border-radius:3px;transition:width .4s ease}
+  .fill.atk{background:var(--high)}
+
+  footer{margin-top:20px;color:var(--muted);font-size:11.5px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>IA Teste <span>/</span> console de detecção</h1>
+  <span class="badge" id="mode">carregando…</span>
+  <span class="badge live" id="conn"><span class="dot"></span>conectando</span>
+  <span class="spacer"></span>
+  <button id="toggle">pausar</button>
+</header>
+
+<div class="stats">
+  <div class="stat"><div class="k">fluxos processados</div><div class="v" id="s-total">0</div></div>
+  <div class="stat alert"><div class="k">ataques detectados</div><div class="v" id="s-atk">0</div></div>
+  <div class="stat"><div class="k">taxa de alerta</div><div class="v" id="s-rate">0,00<small>%</small></div></div>
+  <div class="stat good"><div class="k">throughput</div><div class="v" id="s-tp">0<small>/s</small></div></div>
+  <div class="stat"><div class="k">classes vistas</div><div class="v" id="s-cls">0</div></div>
+</div>
+
+<div class="panel" style="margin-bottom:16px">
+  <h2>Fluxos por segundo <em id="chart-note">últimos 60 s</em></h2>
+  <canvas id="chart" width="1200" height="220"></canvas>
+</div>
+
+<div class="grid">
+  <div class="panel">
+    <h2>Alertas <em id="alert-count">0 na tela</em></h2>
+    <div class="tablewrap">
+      <table>
+        <thead>
+          <tr><th>hora</th><th>origem → destino</th><th>classe</th><th>severidade</th><th style="text-align:right">conf.</th><th style="text-align:right">bytes</th></tr>
+        </thead>
+        <tbody id="alerts"></tbody>
+      </table>
+      <div class="empty" id="empty">aguardando o primeiro alerta…</div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>Distribuição</h2>
+    <div class="bars" id="bars"></div>
+  </div>
+</div>
+
+<footer class="mono" id="foot">—</footer>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const MAX_ROWS = 60, WINDOW = 60;
+
+  let total = 0, attacks = 0, paused = false, es = null;
+  const classCounts = new Map();
+  const perSecond = new Array(WINDOW).fill(0);
+  let bucket = 0, lastSecond = Math.floor(Date.now() / 1000);
+
+  const nf = new Intl.NumberFormat('pt-BR');
+  const pf = new Intl.NumberFormat('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+
+  // ---------- estado do cabeçalho
+  fetch('/health').then(r => r.json()).then(h => {
+    const el = $('mode');
+    if (h.mode === 'real') { el.textContent = 'modelo real'; el.className = 'badge live'; }
+    else { el.textContent = 'modo demo'; el.className = 'badge demo'; }
+    $('foot').textContent = `modelo: ${h.model_loaded ? 'carregado' : 'ausente'} · replay: ${h.replay_loaded ? 'carregado' : 'ausente'} · fonte dos fluxos: ${h.replay_loaded ? 'conjunto de teste' : 'gerador sintético'}`;
+  }).catch(() => { $('mode').textContent = 'api offline'; });
+
+  // ---------- gráfico
+  const cv = $('chart'), ctx = cv.getContext('2d');
+  function drawChart() {
+    const w = cv.width, h = cv.height, pad = 6;
+    ctx.clearRect(0, 0, w, h);
+    const max = Math.max(10, ...perSecond);
+    const bw = w / WINDOW;
+
+    // grade
+    ctx.strokeStyle = '#172326'; ctx.lineWidth = 1;
+    for (let i = 1; i < 4; i++) {
+      const y = (h / 4) * i;
+      ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
+    }
+    // barras
+    for (let i = 0; i < WINDOW; i++) {
+      const v = perSecond[i];
+      if (!v) continue;
+      const bh = Math.max(2, (v / max) * (h - pad * 2));
+      ctx.fillStyle = i === WINDOW - 1 ? '#3FBFAE' : '#22585280';
+      ctx.fillRect(i * bw + 1, h - bh - pad, bw - 2, bh);
+    }
+    // rótulo do máximo
+    ctx.fillStyle = '#5E7275';
+    ctx.font = '500 16px "IBM Plex Mono", monospace';
+    ctx.fillText(String(max), 10, 26);
+  }
+
+  // ---------- barras de classe
+  function drawBars() {
+    const sorted = [...classCounts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
+    const max = sorted.length ? sorted[0][1] : 1;
+    $('bars').innerHTML = sorted.map(([name, n]) => `
+      <div class="bar">
+        <div class="top"><b>${name}</b><span>${nf.format(n)}</span></div>
+        <div class="track"><div class="fill ${name === 'BENIGN' ? '' : 'atk'}" style="width:${(n / max * 100).toFixed(1)}%"></div></div>
+      </div>`).join('');
+  }
+
+  // ---------- tabela
+  const tbody = $('alerts');
+  function addAlert(f) {
+    const tr = document.createElement('tr');
+    tr.className = 'new';
+    const t = new Date(f.ts * 1000).toLocaleTimeString('pt-BR');
+    tr.innerHTML = `
+      <td class="t">${t}</td>
+      <td class="f">${f.src} → ${f.dst}:${f.port}</td>
+      <td>${f.label}</td>
+      <td><span class="sev ${f.severity}">${f.severity}</span></td>
+      <td class="c">${f.confidence.toFixed(3)}</td>
+      <td class="c">${nf.format(f.bytes)}</td>`;
+    tbody.prepend(tr);
+    while (tbody.children.length > MAX_ROWS) tbody.lastChild.remove();
+    $('empty').style.display = 'none';
+    $('alert-count').textContent = `${tbody.children.length} na tela`;
+  }
+
+  // ---------- ingestão
+  function handle(flows) {
+    const nowSec = Math.floor(Date.now() / 1000);
+    if (nowSec !== lastSecond) {
+      perSecond.shift(); perSecond.push(0);
+      $('s-tp').innerHTML = `${nf.format(bucket)}<small>/s</small>`;
+      bucket = 0; lastSecond = nowSec;
+    }
+
+    for (const f of flows) {
+      total++; bucket++;
+      perSecond[WINDOW - 1]++;
+      classCounts.set(f.label, (classCounts.get(f.label) || 0) + 1);
+      if (f.is_attack) { attacks++; addAlert(f); }
+    }
+
+    $('s-total').textContent = nf.format(total);
+    $('s-atk').textContent = nf.format(attacks);
+    $('s-rate').innerHTML = `${pf.format(total ? attacks / total * 100 : 0)}<small>%</small>`;
+    $('s-cls').textContent = classCounts.size;
+    drawChart(); drawBars();
+  }
+
+  // ---------- conexão
+  function connect() {
+    es = new EventSource('/stream?rate=16');
+    es.onopen = () => { $('conn').innerHTML = '<span class="dot"></span>ao vivo'; $('conn').className = 'badge live'; };
+    es.onmessage = e => { if (!paused) handle(JSON.parse(e.data)); };
+    es.onerror = () => { $('conn').innerHTML = '<span class="dot"></span>reconectando'; $('conn').className = 'badge demo'; };
+  }
+
+  $('toggle').onclick = () => {
+    paused = !paused;
+    $('toggle').textContent = paused ? 'retomar' : 'pausar';
+    $('conn').innerHTML = paused ? 'pausado' : '<span class="dot"></span>ao vivo';
+    $('conn').className = paused ? 'badge' : 'badge live';
+  };
+
+  drawChart(); connect();
+})();
+</script>
+</body>
+</html>
